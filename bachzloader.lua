@@ -1,7 +1,5 @@
 -- ============================================
 --   [BACHZ] MENU LOADER BY BACHZ
---   Key + Auto-login + HWID + Aimbot + Silent + ESP + INFO + SPINBOT
---   + Save Setting + Drag BZ Button + FIX LAG
 --   cre bachz
 -- ============================================
 
@@ -556,14 +554,12 @@ LockText.Size = 16
 LockText.Color = Color3.fromRGB(255, 60, 60)
 LockText.Visible = false
 
--- ESP LINE VẼ TRƯỚC (nằm dưới)
--- CountText vẽ sau (nằm trên)
 local EspCache = {}
 local CountText = Drawing.new("Text")
 CountText.Center = true
 CountText.Outline = true
 CountText.Font = 2
-CountText.Size = 24
+CountText.Size = 32
 CountText.Color = Color3.fromRGB(255, 60, 60)
 CountText.Visible = false
 
@@ -583,7 +579,7 @@ end
 
 local function isEnemy(p)
     if p == LP then return false end
-    local a, b  = LP.Team, p.Team
+    local a, b = LP.Team, p.Team
     if a and b then return a ~= b end
     return true
 end
@@ -766,6 +762,7 @@ local fpsCounter = 0
 local fpsTime = tick()
 local currentFps = 0
 local frameSkip = 0
+local COUNT_Y = 100
 
 RunService.Heartbeat:Connect(function()
     frameSkip = frameSkip + 1
@@ -819,6 +816,8 @@ RunService.Heartbeat:Connect(function()
         ec.dist.Visible = false
     end
 
+    local lineOrigin = Vector2.new(vp.X / 2, COUNT_Y + 20)
+
     if CFG.esp_enabled and lpos and doHeavy then
         for _, p in ipairs(Players:GetPlayers()) do
             if isEnemy(p) and isAlive(p) then
@@ -852,7 +851,7 @@ RunService.Heartbeat:Connect(function()
                             end
 
                             if CFG.esp_line then
-                                ec.line.From = Vector2.new(vp.X / 2, vp.Y / 2)
+                                ec.line.From = lineOrigin
                                 ec.line.To = Vector2.new(topScreen.X, topScreen.Y + boxH)
                                 ec.line.Visible = true
                             end
@@ -877,7 +876,7 @@ RunService.Heartbeat:Connect(function()
 
     if CFG.esp_enabled and CFG.esp_count then
         CountText.Text = "Enemies: " .. espCounter
-        CountText.Position = Vector2.new(vp.X / 2, 100)
+        CountText.Position = Vector2.new(vp.X / 2, COUNT_Y)
         CountText.Visible = true
     else
         CountText.Visible = false
@@ -1177,9 +1176,9 @@ local function slider(parent, name, min, max, def, cb)
     Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
 
     local dragging = false
-    local setVal
     local function setVal(x)
         local rel = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+      X) / track.AbsoluteSize.X, 0, 1)
         local v = min + (max - min) * rel
         v = math.floor(v * 100) / 100
         fill.Size = UDim2.new(rel, 0, 1, 0)
@@ -1291,5 +1290,5 @@ do
     end)
 end
 
-print("[BACHZ] MENU LOADER BY BACHZ loaded (LAG FIX + LAYER ORDER)")
+print("[BACHZ] MENU LOADER BY BACHZ loaded")
 print("cre bachz")
