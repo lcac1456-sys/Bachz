@@ -584,8 +584,7 @@ local function isEnemy(p)
     if a and b then return a ~= b end
     return true
 end
-local function w2
-s(pos)
+local function w2s(pos)
     local sp, on = Cam:WorldToViewportPoint(pos)
     return Vector2.new(sp.X, sp.Y), on
 end
