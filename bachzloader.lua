@@ -619,7 +619,7 @@ local function hasLos(part, wall)
     rp.FilterDescendantsInstances = { LP.Character, Cam }
     local r = workspace:Raycast(o, d, rp)
     return not r or r.Instance == part
-end
+end 
 
 local function findTarget(fov, wall)
     local best, bm = nil, math.huge
@@ -1122,7 +1122,8 @@ local function toggle(parent, name, def, cb)
     Instance.new("UICorner", k).CornerRadius = UDim.new(1, 0)
 
     b.MouseButton1Click:Connect(function()
-        s = not s        ind.BackgroundColor3 = s and Color3.fromRGB(0,255,140) or Color3.fromRGB(35,45,55)
+        s = not s        
+        ind.BackgroundColor3 = s and Color3.fromRGB(0,255,140) or Color3.fromRGB(35,45,55)
         k.Position = UDim2.new(0, s and 18 or 3, 0.5, -6)
         pcall(cb, s)
         pcall(saveConfig)
