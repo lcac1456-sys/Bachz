@@ -1,7 +1,7 @@
 -- ============================================
 --   [BACHZ] MENU LOADER BY BACHZ
 --   Key + Auto-login + HWID + Aimbot + Silent + ESP + INFO + SPINBOT
---   + Save Setting + Drag BZ Button
+--   + Save Setting + Drag BZ Button + FIX LAG
 --   cre bachz
 -- ============================================
 
@@ -433,23 +433,23 @@ local CFG = {
     aim_pred = 0.15,
     aim_wall = false,
     aim_head_off = 0,
-    aim_show_fov = true,
-    aim_show_dot = true,
+    aim_show_fov = false,
+    aim_show_dot = false,
     silent_enabled = false,
     silent_key = Enum.UserInputType.MouseButton2,
-    silent_show = true,
+    silent_show = false,
     spin_enabled = false,
     spin_speed = 20,
     esp_enabled = true,
     esp_line = true,
     esp_box = true,
-    esp_count = false,
+    esp_count = true,
     esp_name = true,
     esp_dist = true,
-    esp_max = 10000,
+    esp_max = 800,
     esp_box_color = Color3.fromRGB(0, 255, 140),
     esp_line_color = Color3.fromRGB(255, 60, 60),
-    info_enabled = true,
+    info_enabled = false,
     info_show_players = true,
     info_show_fps = true,
     info_show_ping = true,
@@ -556,6 +556,9 @@ LockText.Size = 16
 LockText.Color = Color3.fromRGB(255, 60, 60)
 LockText.Visible = false
 
+-- ESP LINE VẼ TRƯỚC (nằm dưới)
+-- CountText vẽ sau (nằm trên)
+local EspCache = {}
 local CountText = Drawing.new("Text")
 CountText.Center = true
 CountText.Outline = true
@@ -580,39 +583,36 @@ end
 
 local function isEnemy(p)
     if p == LP then return false end
-    local a, b = LP.Team, p.Team
+    local a, b  = LP.Team, p.Team
     if a and b then return a ~= b end
     return true
 end
+
 local function w2s(pos)
     local sp, on = Cam:WorldToViewportPoint(pos)
     return Vector2.new(sp.X, sp.Y), on
 end
 
+local HeadCache = {}
 local function getHead(p)
     local c = p.Character
-    if not c then return nil end
+    if not c then HeadCache[p] = nil; return nil end
+    local cached = HeadCache[p]
+    if cached and cached.Parent and cached:IsDescendantOf(c) then
+        return cached
+    end
     local h = c:FindFirstChild("Head")
-    if h and h:IsA("BasePart") then return h end
+    if h and h:IsA("BasePart") then
+        HeadCache[p] = h
+        return h
+    end
     for _, part in ipairs(c:GetDescendants()) do
         if part:IsA("BasePart") and part.Name:lower() == "head" then
+            HeadCache[p] = part
             return part
         end
     end
-    local hrp = c:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        local best, bestY = nil, -math.huge
-        for _, part in ipairs(c:GetDescendants()) do
-            if part:IsA("BasePart") and part.Position.Y > bestY then
-                local dist = (part.Position - hrp.Position).Magnitude
-                if dist < 5 then
-                    bestY = part.Position.Y
-                    best = part
-                end
-            end
-        end
-        return best
-    end
+    HeadCache[p] = nil
     return nil
 end
 
@@ -736,7 +736,6 @@ local function doSpin()
     hrp.CFrame = CFrame.new(pos, pos + dir * 10)
 end
 
-local EspCache = {}
 local function ensureEsp(p)
     if EspCache[p] then return EspCache[p] end
     local c = {
@@ -766,37 +765,45 @@ local espCounter = 0
 local fpsCounter = 0
 local fpsTime = tick()
 local currentFps = 0
+local frameSkip = 0
 
-RunService.RenderStepped:Connect(function()
-    doSpin()
-    if CFG.aim_enabled then doAim() end
-    doSilent()
+RunService.Heartbeat:Connect(function()
+    frameSkip = frameSkip + 1
+    local doHeavy = (frameSkip % 2 == 0)
+
+    if doHeavy then
+        doSpin()
+        if CFG.aim_enabled then doAim() end
+        doSilent()
+    end
 
     local vp = Cam.ViewportSize
     local c = Vector2.new(vp.X / 2, vp.Y / 2)
 
-    FovC.Position = c
-    FovC.Radius = CFG.aim_fov
-    FovC.Visible = CFG.aim_enabled and CFG.aim_show_fov
+    if doHeavy then
+        FovC.Position = c
+        FovC.Radius = CFG.aim_fov
+        FovC.Visible = CFG.aim_enabled and CFG.aim_show_fov
 
-    if CFG.aim_enabled and CFG.aim_show_dot then
-        local t = findTarget(CFG.aim_fov, CFG.aim_wall)
-        if t then
-            Dot.Position = t.sp
-            Dot.Visible = true
+        if CFG.aim_enabled and CFG.aim_show_dot then
+            local t = findTarget(CFG.aim_fov, CFG.aim_wall)
+            if t then
+                Dot.Position = t.sp
+                Dot.Visible = true
+            else
+                Dot.Visible = false
+            end
         else
             Dot.Visible = false
         end
-    else
-        Dot.Visible = false
-    end
 
-    if aimLocked and lockedTarget and lockedTarget.Parent then
-        LockText.Text = "LOCKED: " .. lockedTarget.Name
-        LockText.Position = Vector2.new(c.X, c.Y + 40)
-        LockText.Visible = true
-    else
-        LockText.Visible = false
+        if aimLocked and lockedTarget and lockedTarget.Parent then
+            LockText.Text = "LOCKED: " .. lockedTarget.Name
+            LockText.Position = Vector2.new(c.X, c.Y + 40)
+            LockText.Visible = true
+        else
+            LockText.Visible = false
+        end
     end
 
     espCounter = 0
@@ -812,7 +819,7 @@ RunService.RenderStepped:Connect(function()
         ec.dist.Visible = false
     end
 
-    if CFG.esp_enabled and lpos then
+    if CFG.esp_enabled and lpos and doHeavy then
         for _, p in ipairs(Players:GetPlayers()) do
             if isEnemy(p) and isAlive(p) then
                 local ec = ensureEsp(p)
@@ -870,13 +877,13 @@ RunService.RenderStepped:Connect(function()
 
     if CFG.esp_enabled and CFG.esp_count then
         CountText.Text = "Enemies: " .. espCounter
-        CountText.Position = Vector2.new(vp.X / 2, 150)
+        CountText.Position = Vector2.new(vp.X / 2, 100)
         CountText.Visible = true
     else
         CountText.Visible = false
     end
 
-    if CFG.info_enabled and ActiveTab == "info" then
+    if CFG.info_enabled and ActiveTab == "info" and doHeavy then
         fpsCounter = fpsCounter + 1
         if tick() - fpsTime >= 1 then
             currentFps = fpsCounter
@@ -927,6 +934,7 @@ RunService.RenderStepped:Connect(function()
         InfoText.Visible = false
     end
 end)
+
 --== UI ==--
 local Open = Instance.new("TextButton", Gui)
 Open.Size = UDim2.new(0, 60, 0, 60)
@@ -1169,6 +1177,7 @@ local function slider(parent, name, min, max, def, cb)
     Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
 
     local dragging = false
+    local setVal
     local function setVal(x)
         local rel = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
         local v = min + (max - min) * rel
@@ -1282,5 +1291,5 @@ do
     end)
 end
 
-print("[BACHZ] MENU LOADER BY BACHZ loaded")
+print("[BACHZ] MENU LOADER BY BACHZ loaded (LAG FIX + LAYER ORDER)")
 print("cre bachz")
