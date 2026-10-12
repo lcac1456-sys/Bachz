@@ -170,7 +170,6 @@ local function reportDevice(inputKey)
         ["X-Master-Key"] = MASTER_KEY,
     }, body)
 end
-
 local function showKeyGui(prefill)
     local Gui = Instance.new("ScreenGui")
     Gui.Name = "BachzKeyGui"
@@ -512,7 +511,6 @@ local function loadConfig()
 end
 
 pcall(loadConfig)
-
 local Gui = Instance.new("ScreenGui")
 Gui.Name = "MenuBachzLoader"
 Gui.IgnoreGuiInset = true
@@ -1124,8 +1122,7 @@ local function toggle(parent, name, def, cb)
     Instance.new("UICorner", k).CornerRadius = UDim.new(1, 0)
 
     b.MouseButton1Click:Connect(function()
-        s = not s
-        ind.BackgroundColor3 = s and Color3.fromRGB(0,255,140) or Color3.fromRGB(35,45,55)
+        s = not s        ind.BackgroundColor3 = s and Color3.fromRGB(0,255,140) or Color3.fromRGB(35,45,55)
         k.Position = UDim2.new(0, s and 18 or 3, 0.5, -6)
         pcall(cb, s)
         pcall(saveConfig)
@@ -1178,7 +1175,6 @@ local function slider(parent, name, min, max, def, cb)
     local dragging = false
     local function setVal(x)
         local rel = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-      X) / track.AbsoluteSize.X, 0, 1)
         local v = min + (max - min) * rel
         v = math.floor(v * 100) / 100
         fill.Size = UDim2.new(rel, 0, 1, 0)
