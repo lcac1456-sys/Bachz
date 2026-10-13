@@ -586,238 +586,18 @@ end
 
 local function w2s(pos)
     local sp, on = Cam:WorldToViewportPoint(pos)
-    return Vector2.new(sp.X, sp.Y), on
-end
-
-local HeadCache = {}
-local function getHead(p)
-    local c = p.Character
-    if not c then HeadCache[p] = nil; return nil end
-    local cached = HeadCache[p]
-    if cached and cached.Parent and cached:IsDescendantOf(c) then
-        return cached
-    end
-    local h = c:FindFirstChild("Head")
-    if h and h:IsA("BasePart") then
-        HeadCache[p] = h
-        return h
-    end
-    for _, part in ipairs(c:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name:lower() == "head" then
-            HeadCache[p] = part
-            return part
-        end
-    end
-    HeadCache[p] = nil
-    return nil
-end
-local function hasLos(part, wall)
-    if not wall then return true end
-    local o = Cam.CFrame.Position
-    local d = part.Position - o
-    local rp = RaycastParams.new()
-    rp.FilterType = Enum.RaycastFilterType.Exclude
-    rp.FilterDescendantsInstances = { LP.Character, Cam }
-    local r = workspace:Raycast(o, d, rp)
-    return not r or r.Instance == part
-end
-
-local function findTarget(fov, wall)
-    local best, bm = nil, math.huge
-    local vp = Cam.ViewportSize
-    local c = Vector2.new(vp.X / 2, vp.Y / 2)
-    for _, p in ipairs(Players:GetPlayers()) do
-        if isEnemy(p) and isAlive(p) then
-            local head = getHead(p)
-            if head and hasLos(head, wall) then
-                local sp, on = w2s(head.Position)
-                if on then
-                    local m = (sp - c).Magnitude
-                    if m <= fov and m < bm then
-                        bm = m
-                        best = { plr = p, part = head, sp = sp, mag = m }
-                    end
-                end
-            end
-        end
-    end
-    return best
-end
-
-local aimLocked = false
-local lockedTarget = nil
-
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        aimLocked = true
-    end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton2 then
-        aimLocked = false
-        lockedTarget = nil
-    end
-end)
-
-local function doAim()
-    local t
-    if aimLocked and lockedTarget and isAlive(lockedTarget) then
-        local head = getHead(lockedTarget)
-        if head then
-            local sp, on = w2s(head.Position)
-            if on then
-                t = { plr = lockedTarget, part = head, sp = sp }
-            end
-        end
-        if not t then lockedTarget = nil end
-    end
-    if not t then
-        t = findTarget(CFG.aim_fov, CFG.aim_wall)
-        if aimLocked and t then lockedTarget = t.plr end
-    end
-    if not t or not t.part or not t.part.Parent then return end
-    local targetPos = t.part.Position + Vector3.new(0, CFG.aim_head_off, 0)
-    local hrp = t.plr.Character and t.plr.Character:FindFirstChild("HumanoidRootPart")
-    if hrp and CFG.aim_pred > 0 then
-        targetPos = targetPos + hrp.AssemblyLinearVelocity * CFG.aim_pred
-    end
-    local want = CFrame.lookAt(Cam.CFrame.Position, targetPos)
-    if CFG.aim_smooth <= 0 then
-        Cam.CFrame = want
-    else
-        Cam.CFrame = Cam.CFrame:Lerp(want, 1 - CFG.aim_smooth)
-    end
-end
-
-local silentAim = false
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.UserInputType == CFG.silent_key then silentAim = true end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == CFG.silent_key then silentAim = false end
-end)
-
-local function doSilent()
-    if not CFG.silent_enabled or not silentAim then return end
-    local t = findTarget(CFG.aim_fov, CFG.aim_wall)
-    if not t then return end
-    local targetPos = t.part.Position
-    local hrp = t.plr.Character and t.plr.Character:FindFirstChild("HumanoidRootPart")
-    if hrp and CFG.aim_pred > 0 then
-        targetPos = targetPos + hrp.AssemblyLinearVelocity * CFG.aim_pred
-    end
-    Cam.CFrame = CFrame.lookAt(Cam.CFrame.Position, targetPos)
-    if CFG.silent_show then
-        SilentDot.Position = t.sp
-        SilentDot.Visible = true
-    else
-        SilentDot.Visible = false
-    end
-end
-
-local spinAngle = 0
-local function doSpin()
-    if not CFG.spin_enabled then return end
-    local ch = LP.Character
-    if not ch then return end
-    local hrp = ch:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    spinAngle = (spinAngle + CFG.spin_speed) % 360
-    local rad = math.rad(spinAngle)
-    local pos = hrp.CFrame.Position
-    local dir = Vector3.new(math.cos(rad), 0, math.sin(rad))
-    hrp.CFrame = CFrame.new(pos, pos + dir * 10)
-end
-
-local function ensureEsp(p)
-    if EspCache[p] then return EspCache[p] end
-    local c = {
-        box = Drawing.new("Square"),
-        line = Drawing.new("Line"),
-        name = Drawing.new("Text"),
-        dist = Drawing.new("Text"),
-    }
-    c.box.Filled = false
-    c.box.Thickness = 1.5
-    c.box.Color = CFG.esp_box_color
-    c.line.Thickness = 1.5
-    c.line.Color = CFG.esp_line_color
-    c.name.Center = true
-    c.name.Outline = true
-    c.name.Color = Color3.fromRGB(255, 255, 255)
-    c.name.Size = 13
-    c.dist.Center = true
-    c.dist.Outline = true
-    c.dist.Color = Color3.fromRGB(255, 220, 120)
-    c.dist.Size = 11
-    EspCache[p] = c
-    return c
-end
-
-local espCounter = 0
-local fpsCounter = 0
-local fpsTime = tick()
-local currentFps = 0
-local frameSkip = 0
-local COUNT_Y = 100
-
-RunService.Heartbeat:Connect(function()
-    frameSkip = frameSkip + 1
-    local doHeavy = (frameSkip % 2 == 0)
-
-    if doHeavy then
-        doSpin()
-        if CFG.aim_enabled then doAim() end
-        doSilent()
-    end
-
-    local vp = Cam.ViewportSize
-    local c = Vector2.new(vp.X / 2, vp.Y / 2)
-
-    if doHeavy then
-        FovC.Position = c
-        FovC.Radius = CFG.aim_fov
-        FovC.Visible = CFG.aim_enabled and CFG.aim_show_fov
-
-        if CFG.aim_enabled and CFG.aim_show_dot then
-            local t = findTarget(CFG.aim_fov, CFG.aim_wall)
-            if t then
-                Dot.Position = t.sp
-                Dot.Visible = true
-            else
-                Dot.Visible = false
-            end
-        else
-            Dot.Visible = false
-        end
-
-        if aimLocked and lockedTarget and lockedTarget.Parent then
-            LockText.Text = "LOCKED: " .. lockedTarget.Name
-            LockText.Position = Vector2.new(c.X, c.Y + 40)
-            LockText.Visible = true
-        else
-            LockText.Visible = false
-        end
-    end
-
-    espCounter = 0
-
-    local lch = LP.Character
-    local lhrp = lch and lch:FindFirstChild("HumanoidRootPart")
-    local lpos = lhrp and lhrp.Position
-
-    for _, ec in pairs(EspCache) do
-        ec.box.Visible = false
-        ec.line.Visible = false
-        ec.name.Visible = false
-        ec.dist.Visible = false
-    end
+    return Vector2.new(sp.X, p.Position
 
     local lineOrigin = Vector2.new(vp.X / 2, COUNT_Y + 20)
 
-    if CFG.esp_enabled and lpos and doHeavy then
+    if CFG.esp_enabled and lpos then
+        for _, ec in pairs(EspCache) do
+            ec.box.Visible = false
+            ec.line.Visible = false
+            ec.name.Visible = false
+            ec.dist.Visible = false
+        end
+
         for _, p in ipairs(Players:GetPlayers()) do
             if isEnemy(p) and isAlive(p) then
                 local ec = ensureEsp(p)
@@ -933,7 +713,6 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
---== UI ==--
 local Open = Instance.new("TextButton", Gui)
 Open.Size = UDim2.new(0, 60, 0, 60)
 Open.Position = UDim2.new(0, 20, 0.5, -30)
@@ -1257,7 +1036,7 @@ logoutBtn.LayoutOrder = #infoPage:GetChildren()
 Instance.new("UICorner", logoutBtn).CornerRadius = UDim.new(0, 7)
 
 logoutBtn.MouseButton1Click:Connect(function()
-    deleteKeyFile()
+    State.deleteKeyFile()
     if type(delfile) == "function" then pcall(delfile, CONFIG_FILE) end
     if type(DelFile) == "function" then pcall(DelFile, CONFIG_FILE) end
     logoutBtn.Text = "ĐÃ ĐĂNG XUẤT!"
@@ -1311,5 +1090,4 @@ do
     end)
 end
 
-print("[BACHZ] MENU LOADER BY BACHZ loaded")
-print("cre bachz")
+print("[BACHZ] Menu Loaded")
