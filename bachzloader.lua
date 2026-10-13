@@ -88,10 +88,7 @@ local HWID = getHWID()
 local DEVICE = getDeviceName()
 
 local function fetchData()
-    local raw = httpGet(KEY_URL, {
-        ["X-Master-Key"] = MASTER_KEY,
-        ["X-Bin-Meta"] = "false",
-    })
+    local raw = httpGet(KEY_URL, {["X-Master-Key"]=MASTER_KEY,["X-Bin-Meta"]="false"})
     if not raw or raw == "" then return nil end
     local ok, decoded = pcall(HttpService.JSONDecode, HttpService, raw)
     if not ok or type(decoded) ~= "table" then return nil end
@@ -253,14 +250,14 @@ local function showKeyGui(prefill)
                 Gui:Destroy()
             else
                 local msg = "Key sai!"
-                local col = Color3.fromRGB(255,50,50)
                 if res.reason == "banned" then msg = "KEY ĐÃ BỊ BAN!"
                 elseif res.reason == "expired" then msg = "KEY HẾT HẠN!"
                 elseif res.reason == "kicked" then msg = "BẠN ĐÃ BỊ KICK!"
                 elseif res.reason == "not_found" then msg = "KEY KHÔNG TỒN TẠI!"
                 elseif res.reason == "no_connection" then msg = "Lỗi kết nối!"
                 end
-                Box.Text = ""; Box.PlaceholderText = msg; Box.PlaceholderColor3 = col
+                Box.Text = ""; Box.PlaceholderText = msg
+                Box.PlaceholderColor3 = Color3.fromRGB(255,50,50)
                 Btn.Text = "XÁC NHẬN"; Btn.BackgroundColor3 = Color3.fromRGB(0,200,100)
                 busy = false
             end
@@ -515,7 +512,7 @@ local function doAim()
     end
     local want = CFrame.lookAt(Cam.CFrame.Position, targetPos)
     if CFG.aim_smooth <= 0 then Cam.CFrame = want
-    else Cam.CFrame = Cam.CFrame:Lerp(want,  1 - CFG.aim_smooth) end
+    else Cam.CFrame = Cam.CFrame:Lerp(want, 1 - CFG.aim_smooth) end
 end
 
 local function doSilent()
@@ -535,7 +532,6 @@ local function doSilent()
         SilentDot.Visible = false
     end
 end
-
 local spinAngle = 0
 local function doSpin()
     if not CFG.spin_enabled then return end
@@ -618,11 +614,8 @@ RunService.Heartbeat:Connect(function()
                     local dist = (hrp.Position - lpos).Magnitude
 
                     if dist <= CFG.esp_max then
-                        local topWorld = head.Position + Vector3.new(0, 1.5, 0)
-                        local botWorld = hrp.Position - Vector3.new(0, 3, 0)
-
-                        local topScreen, onTop = w2s(topWorld)
-                        local botScreen, onBot = w2s(botWorld)
+                        local topScreen, onTop = w2s(head.Position + Vector3.new(0, 1.5, 0))
+                        local botScreen, onBot = w2s(hrp.Position - Vector3.new(0, 3, 0))
 
                         if onTop and onBot and topScreen.Y < botScreen.Y then
                             espCounter = espCounter + 1
@@ -715,11 +708,19 @@ Instance.new("UICorner", M).CornerRadius = UDim.new(0, 12)
 local T = Instance.new("TextLabel", M)
 T.Size = UDim2.new(1, 0, 0, 34)
 T.BackgroundColor3 = Color3.fromRGB(12, 18, 24)
-T.Text = "  BACHZ · MENU"
+T.Text = "      BACHZ · MENU"
 T.TextColor3 = Color3.fromRGB(0, 255, 140)
 T.Font = Enum.Font.GothamBlack
 T.TextSize = 12
 T.TextXAlignment = Enum.TextXAlignment.Left
+
+local Logo = Instance.new("ImageLabel", M)
+Logo.Size = UDim2.new(0, 26, 0, 26)
+Logo.Position = UDim2.new(0, 6, 0, 4)
+Logo.BackgroundTransparency = 1
+Logo.Image = "rbxassetid://97126422593795"
+Logo.ScaleType = Enum.ScaleType.Fit
+Logo.ZIndex = 3
 
 local Sc = Instance.new("ScrollingFrame", M)
 Sc.Size = UDim2.new(1, -16, 1, -56)
@@ -886,7 +887,6 @@ logoutBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 logoutBtn.Font = Enum.Font.GothamBlack
 logoutBtn.TextSize = 12
 Instance.new("UICorner", logoutBtn).CornerRadius = UDim.new(0, 7)
-
 logoutBtn.MouseButton1Click:Connect(function()
     deleteKeyFile()
     if type(delfile) == "function" then pcall(delfile, CONFIG_FILE) end
@@ -903,10 +903,7 @@ do
     Open.InputBegan:Connect(function(i)
         if i.UserInputType == Enum.UserInputType.MouseButton1
            or i.UserInputType == Enum.UserInputType.Touch then
-            dg = true
-            mv = false
-            ds = i.Position
-            sp = Open.Position
+            dg = true; mv = false; ds = i.Position; sp = Open.Position
         end
     end)
     Open.InputEnded:Connect(function(i)
@@ -921,9 +918,7 @@ do
            or i.UserInputType == Enum.UserInputType.Touch) then
             local d = i.Position - ds
             if math.abs(d.X) > CT or math.abs(d.Y) > CT then mv = true end
-            if mv then
-                Open.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y)
-            end
+            if mv then Open.Position = UDim2.new(sp.X.Scale, sp.X.Offset + d.X, sp.Y.Scale, sp.Y.Offset + d.Y) end
         end
     end)
 end
