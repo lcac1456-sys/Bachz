@@ -595,14 +595,14 @@ RunService.Heartbeat:Connect(function()
 
     local lineOrigin = Vector2.new(vp.X / 2, COUNT_Y + 20)
 
-    if CFG.esp_enabled and lpos then
-        for _, ec in pairs(EspCache) do
-            ec.box.Visible = false
-            ec.line.Visible = false
-            ec.name.Visible = false
-            ec.dist.Visible = false
-        end
+    for _, ec in pairs(EspCache) do
+        ec.box.Visible = false
+        ec.line.Visible = false
+        ec.name.Visible = false
+        ec.dist.Visible = false
+    end
 
+    if CFG.esp_enabled and lpos then
         for _, p in ipairs(Players:GetPlayers()) do
             if isEnemy(p) and isAlive(p) then
                 local ec = ensureEsp(p)
