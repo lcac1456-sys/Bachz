@@ -170,6 +170,7 @@ local function reportDevice(inputKey)
         ["X-Master-Key"] = MASTER_KEY,
     }, body)
 end
+
 local function showKeyGui(prefill)
     local Gui = Instance.new("ScreenGui")
     Gui.Name = "BachzKeyGui"
@@ -443,7 +444,7 @@ local CFG = {
     esp_count = true,
     esp_name = true,
     esp_dist = true,
-    esp_max = 800,
+    esp_max = 5000,
     esp_box_color = Color3.fromRGB(0, 255, 140),
     esp_line_color = Color3.fromRGB(255, 60, 60),
     info_enabled = false,
@@ -511,6 +512,7 @@ local function loadConfig()
 end
 
 pcall(loadConfig)
+
 local Gui = Instance.new("ScreenGui")
 Gui.Name = "MenuBachzLoader"
 Gui.IgnoreGuiInset = true
@@ -609,7 +611,6 @@ local function getHead(p)
     HeadCache[p] = nil
     return nil
 end
-
 local function hasLos(part, wall)
     if not wall then return true end
     local o = Cam.CFrame.Position
@@ -619,7 +620,7 @@ local function hasLos(part, wall)
     rp.FilterDescendantsInstances = { LP.Character, Cam }
     local r = workspace:Raycast(o, d, rp)
     return not r or r.Instance == part
-end 
+end
 
 local function findTarget(fov, wall)
     local best, bm = nil, math.huge
@@ -828,8 +829,6 @@ RunService.Heartbeat:Connect(function()
                     local dist = (hrp.Position - lpos).Magnitude
 
                     if dist <= CFG.esp_max then
-                        espCounter = espCounter + 1
-
                         local topWorld = head.Position + Vector3.new(0, 1.5, 0)
                         local botWorld = hrp.Position - Vector3.new(0, 3, 0)
 
@@ -837,6 +836,8 @@ RunService.Heartbeat:Connect(function()
                         local botScreen, onBot = w2s(botWorld)
 
                         if onTop and onBot and topScreen.Y < botScreen.Y then
+                            espCounter = espCounter + 1
+
                             local boxH = botScreen.Y - topScreen.Y
                             local boxW = boxH * 0.55
                             local boxX = topScreen.X - boxW / 2
@@ -1122,7 +1123,7 @@ local function toggle(parent, name, def, cb)
     Instance.new("UICorner", k).CornerRadius = UDim.new(1, 0)
 
     b.MouseButton1Click:Connect(function()
-        s = not s        
+        s = not s
         ind.BackgroundColor3 = s and Color3.fromRGB(0,255,140) or Color3.fromRGB(35,45,55)
         k.Position = UDim2.new(0, s and 18 or 3, 0.5, -6)
         pcall(cb, s)
@@ -1193,6 +1194,7 @@ local function slider(parent, name, min, max, def, cb)
     track.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
            or input.UserInputType == Enum.UserInputType.Touch then
+     ch then
             dragging = false
             pcall(saveConfig)
         end
@@ -1241,9 +1243,32 @@ toggle(infoPage, "Show Ping", CFG.info_show_ping, function(v) CFG.info_show_ping
 toggle(infoPage, "Show Time", CFG.info_show_time, function(v) CFG.info_show_time = v end)
 toggle(infoPage, "Show Velocity", CFG.info_show_velocity, function(v) CFG.info_show_velocity = v end)
 
+section(infoPage, "— KEY —")
+
+local logoutBtn = Instance.new("TextButton", infoPage)
+logoutBtn.Size = UDim2.new(1, 0, 0, 36)
+logoutBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+logoutBtn.BorderSizePixel = 0
+logoutBtn.Text = "ĐĂNG XUẤT KEY"
+logoutBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+logoutBtn.Font = Enum.Font.GothamBlack
+logoutBtn.TextSize = 12
+logoutBtn.AutoButtonColor = false
+logoutBtn.LayoutOrder = #infoPage:GetChildren()
+Instance.new("UICorner", logoutBtn).CornerRadius = UDim.new(0, 7)
+
+logoutBtn.MouseButton1Click:Connect(function()
+    deleteKeyFile()
+    if type(delfile) == "function" then pcall(delfile, CONFIG_FILE) end
+    if type(DelFile) == "function" then pcall(DelFile, CONFIG_FILE) end
+    logoutBtn.Text = "ĐÃ ĐĂNG XUẤT!"
+    logoutBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    task.wait(1)
+    LP:Kick("BACHZ: Đã đăng xuất key")
+end)
+
 switchTab("aim")
 
---== NÚT BZ: CLICK MỞ MENU · DRAG DI CHUYỂN ==--
 do
     local dragging = false
     local dragStart, startPos
