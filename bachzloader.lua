@@ -1194,7 +1194,6 @@ local function slider(parent, name, min, max, def, cb)
     track.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1
            or input.UserInputType == Enum.UserInputType.Touch then
-     ch then
             dragging = false
             pcall(saveConfig)
         end
